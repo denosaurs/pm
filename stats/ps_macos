@@ -1,0 +1,2 @@
+  PID ELAPSED  %CPU %MEM ARGS
+10202   27:10   0.0  0.3 deno run -A --unstable god.ts
