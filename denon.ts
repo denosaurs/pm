@@ -9,6 +9,9 @@ const process = Deno.run({
   stderr: err.rid,
   stdout: out.rid,
   cwd: Deno.cwd(),
+  env: {
+    "NO_COLOR": "_",
+  },
 });
 
 console.log("Started PID", process.pid);
