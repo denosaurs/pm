@@ -5,12 +5,12 @@ import { ok } from "../call.ts";
 export interface PingCall extends Call {}
 
 export interface PingPayload {
-  god: number; // god pid
+  pid: number; // god pid
 }
 
 export async function ping(_: PingCall, sock: Socket): Promise<void> {
   const payload: Ok<PingPayload> = ok({
-    god: Deno.pid,
+    pid: Deno.pid,
   });
   await sock.send(JSON.stringify(payload));
 }

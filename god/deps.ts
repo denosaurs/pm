@@ -1,9 +1,12 @@
+export { join } from "https://deno.land/std@0.69.0/path/mod.ts";
+
 export { serve } from "https://deno.land/std@0.69.0/http/server.ts";
 
 export type { Server } from "https://deno.land/std@0.69.0/http/server.ts";
 
 export {
   acceptWebSocket as acceptSocket,
+  isWebSocketCloseEvent as isSocketCLoseEvent,
 } from "https://deno.land/std@0.69.0/ws/mod.ts";
 
 export type {

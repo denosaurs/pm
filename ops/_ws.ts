@@ -18,7 +18,7 @@ export function call<T extends keyof Calls>(
     ws.onmessage = (event) => {
       const payload = JSON.parse(event.data) as Payloads[T][0];
       resolve(payload);
-      ws.close(1000, "bye");
+      ws.close(1000, "BYE");
     };
 
     ws.onclose = () => {

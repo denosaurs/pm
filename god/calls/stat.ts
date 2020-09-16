@@ -6,7 +6,7 @@ import type { Call, Ok } from "../call.ts";
 import { assert, ok } from "../call.ts";
 
 export interface StatCall extends Call {
-  pid: number;
+  pid?: number;
 }
 
 export interface StatPayload {
@@ -71,8 +71,9 @@ async function getPosix(pid: number): Promise<Ok<StatPayload>> {
   });
 }
 
-export async function stat(call: StatCall, sock: Socket): Promise<void> {
-  const stats = await get(call.pid);
+export async function stat({ pid }: StatCall, sock: Socket): Promise<void> {
+  if (!pid) pid = Deno.pid;
+  const stats = await get(pid);
   await sock.send(JSON.stringify(stats));
 }
 

@@ -1,2 +1,2 @@
-log.err
-log.out
+*.err
+*.out
