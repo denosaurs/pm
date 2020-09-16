@@ -6,7 +6,7 @@ if (import.meta.main) {
   });
   if (ping.ok) {
     const payload = await call("STAT", {
-      pid: 123,
+      pid: ping.data.god,
     });
     console.log(payload);
   }

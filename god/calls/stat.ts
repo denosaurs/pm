@@ -11,9 +11,12 @@ export interface StatCall extends Call {
 
 export interface StatPayload {
   pid: number;
-  elapsed: number;
+  ppid: number;
+  uid: number;
   cpu: number;
   mem: number;
+  etime: number;
+  comm: string;
 }
 
 /** Parse `ps` time format returning seconds */
@@ -33,7 +36,7 @@ async function getPosix(pid: number): Promise<Ok<StatPayload>> {
     "-p",
     pid.toString(),
     "-o",
-    "pid,etime,%cpu,%mem",
+    "pid,ppid,uid,etime,%cpu,%mem,comm",
   ];
   const process = Deno.run({
     cmd,
@@ -45,19 +48,26 @@ async function getPosix(pid: number): Promise<Ok<StatPayload>> {
   const statsline = raw.split("\n")[1].trim();
 
   const stats = statsline.split(" ");
-  assert(stats.length === 4, "couldn't fetch stats");
+  assert(stats.length === 7, "couldn't fetch stats");
 
   const _pid = stats[0];
   assert(pid.toString() === _pid, "pid does not match");
 
-  const elapsed = posixTime(stats[1]);
-  const cpu = parseFloat(stats[2]);
-  const mem = parseFloat(stats[3]);
+  const ppid = parseInt(stats[1]);
+  const uid = parseInt(stats[2]);
+
+  const etime = posixTime(stats[3]);
+  const cpu = parseFloat(stats[4]);
+  const mem = parseFloat(stats[5]);
+  const comm = stats[6];
   return ok({
     pid,
-    elapsed,
+    ppid,
+    uid,
     cpu,
     mem,
+    etime,
+    comm,
   });
 }
 
@@ -67,6 +77,7 @@ export async function stat(call: StatCall, sock: Socket): Promise<void> {
 }
 
 export async function get(pid: number): Promise<Ok<StatPayload>> {
+  Deno.stat;
   switch (Deno.build.os) {
     case "darwin":
     case "linux":
