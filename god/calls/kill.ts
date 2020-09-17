@@ -1,19 +1,15 @@
 import type { Socket } from "../deps.ts";
 
-import type { Call } from "../call.ts";
 import type { God } from "../god.ts";
 
-export interface KillCall extends Call {
-  pid?: number;
-}
+// deno-lint-ignore no-empty-interface
+export interface KillCall {}
 
 export async function kill(
-  { pid }: KillCall,
+  _: KillCall,
   sock: Socket,
   god: God,
 ): Promise<void> {
-  if (!pid) {
-    await sock.close(1000);
-    god.server.close();
-  }
+  await sock.close(1000);
+  god.server.close();
 }

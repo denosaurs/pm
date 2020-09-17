@@ -7,17 +7,22 @@ import {
   EventEmitter,
 } from "./deps.ts";
 
-import type { Call, Calls } from "./call.ts";
-import type { Process } from "./registry/process.ts";
+import type { Calls } from "./call.ts";
 
+import type { Process } from "./exec/process.ts";
+import { isProcess } from "./exec/process.ts";
+
+import { kill } from "./calls/kill.ts";
 import { ping } from "./calls/ping.ts";
 import { stat } from "./calls/stat.ts";
-import { kill } from "./calls/kill.ts";
-import { run } from "./calls/run.ts";
+import { list } from "./calls/list.ts";
+import { stop } from "./calls/stop.ts";
+import { start } from "./calls/start.ts";
 
-export interface Event<T extends Call = Call> {
-  type: string;
-  call: T;
+export interface Event {
+  type: keyof Calls;
+  // deno-lint-ignore no-explicit-any
+  call: any;
 }
 
 export interface GodOptions {
@@ -49,12 +54,13 @@ export class God extends EventEmitter<Calls> {
           const request = JSON.parse(event) as Event;
           console.log("REQ", request);
           switch (request.type) {
+            case "KILL":
             case "PING":
             case "STAT":
-            case "KILL":
-            case "RUN": {
-              // deno-lint-ignore no-explicit-any
-              this.emit(request.type, request.call as any, sock, this);
+            case "LIST":
+            case "STOP":
+            case "START": {
+              this.emit(request.type, request.call, sock, this);
               break;
             }
             default:
@@ -105,11 +111,21 @@ function wrap<T>(fn: Listener<T>): Listener<T> {
 
 if (import.meta.main) {
   const god = new God({ port: 8080 });
+  god.on("KILL", wrap(kill));
   god.on("PING", wrap(ping));
   god.on("STAT", wrap(stat));
-  god.on("KILL", wrap(kill));
-  god.on("RUN", wrap(run));
+  god.on("LIST", wrap(list));
+  god.on("STOP", wrap(stop));
+  god.on("START", wrap(start));
   await god.run();
   Deno.stderr.close();
   Deno.stdout.close();
+  window.onunload = () => {
+    for (const process of god.processes.values()) {
+      if (isProcess(process)) {
+        Deno.close(process.out);
+        Deno.close(process.err);
+      }
+    }
+  };
 }

@@ -3,7 +3,7 @@ import type { Calls, Payloads } from "../god/call.ts";
 export function call<T extends keyof Calls>(
   type: T,
   call: Calls[T][0],
-): Promise<Payloads[T][0]> {
+): Promise<Payloads[T]> {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket("ws://localhost:8080");
 
@@ -16,7 +16,7 @@ export function call<T extends keyof Calls>(
     };
 
     ws.onmessage = (event) => {
-      const payload = JSON.parse(event.data) as Payloads[T][0];
+      const payload = JSON.parse(event.data) as Payloads[T];
       resolve(payload);
       ws.close(1000, "BYE");
     };

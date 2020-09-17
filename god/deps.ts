@@ -20,3 +20,7 @@ export {
 export {
   default as EventEmitter,
 } from "https://deno.land/x/event@0.1.0/mod.ts";
+
+export {
+  hasOwnProperty,
+} from "https://deno.land/std@0.69.0/_util/has_own_property.ts";

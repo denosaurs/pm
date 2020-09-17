@@ -2,11 +2,11 @@ import { decode } from "../deps.ts";
 
 import type { Socket } from "../deps.ts";
 
-import type { Call, Ok } from "../call.ts";
 import { assert, ok } from "../call.ts";
+import type { God } from "../god.ts";
 
-export interface StatCall extends Call {
-  pid?: number;
+export interface StatCall {
+  xid?: number;
 }
 
 export interface StatPayload {
@@ -30,7 +30,7 @@ export function posixTime(time: string): number {
     values[3]; // seconds
 }
 
-async function getPosix(pid: number): Promise<Ok<StatPayload>> {
+async function getPosix(pid: number): Promise<StatPayload> {
   const cmd = [
     "ps",
     "-p",
@@ -60,7 +60,7 @@ async function getPosix(pid: number): Promise<Ok<StatPayload>> {
   const cpu = parseFloat(stats[4]);
   const mem = parseFloat(stats[5]);
   const comm = stats[6];
-  return ok({
+  return {
     pid,
     ppid,
     uid,
@@ -68,22 +68,30 @@ async function getPosix(pid: number): Promise<Ok<StatPayload>> {
     mem,
     etime,
     comm,
-  });
+  };
 }
 
-export async function stat({ pid }: StatCall, sock: Socket): Promise<void> {
-  if (!pid) pid = Deno.pid;
-  const stats = await get(pid);
-  await sock.send(JSON.stringify(stats));
+export async function stat(
+  { xid }: StatCall,
+  sock: Socket,
+  god: God,
+): Promise<void> {
+  let pid = Deno.pid;
+  if (xid) {
+    const process = god.processes.get(xid);
+    assert(process);
+    pid = process.pid;
+  }
+  const stats = await getStats(pid);
+  await sock.send(JSON.stringify(ok(stats)));
 }
 
-export async function get(pid: number): Promise<Ok<StatPayload>> {
-  Deno.stat;
+export async function getStats(pid: number): Promise<StatPayload> {
   switch (Deno.build.os) {
     case "darwin":
     case "linux":
       return await getPosix(pid);
     case "windows":
-      return getPosix(pid); // TODO: statsWindows
+      return await getPosix(pid); // TODO: statsWindows
   }
 }

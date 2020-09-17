@@ -1,12 +1,12 @@
 import { call } from "./_ws.ts";
 
 if (import.meta.main) {
-  let pid: number | undefined;
+  let xid: number | undefined;
   if (Deno.args[0]) {
-    pid = parseInt(Deno.args[0]);
+    xid = parseInt(Deno.args[0]);
   }
   const payload = await call("STAT", {
-    pid,
+    xid,
   });
-  console.log(payload);
+  console.table(payload);
 }

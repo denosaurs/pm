@@ -1,18 +1,22 @@
 import type { Socket } from "./deps.ts";
 import type { God } from "./god.ts";
 
+import type { KillCall } from "./calls/kill.ts";
 import type { PingCall, PingPayload } from "./calls/ping.ts";
 import type { StatCall, StatPayload } from "./calls/stat.ts";
-import type { KillCall } from "./calls/kill.ts";
-import type { RunCall, RunPayload } from "./calls/run.ts";
+import type { ListCall, ListPayload } from "./calls/list.ts";
+import type { StopCall, StopPayload } from "./calls/stop.ts";
+import type { StartCall, StartPayload } from "./calls/start.ts";
 
-export interface Call {}
+type CallArgs<T> = [T, Socket, God];
 
 export type Calls = {
-  PING: [PingCall, Socket, God];
-  KILL: [KillCall, Socket, God];
-  STAT: [StatCall, Socket, God];
-  RUN: [RunCall, Socket, God];
+  KILL: CallArgs<KillCall>;
+  PING: CallArgs<PingCall>;
+  STAT: CallArgs<StatCall>;
+  LIST: CallArgs<ListCall>;
+  STOP: CallArgs<StopCall>;
+  START: CallArgs<StartCall>;
 };
 
 export interface Ok<T> {
@@ -28,10 +32,12 @@ export interface Error {
 export type Status<T> = Ok<T> | Error;
 
 export type Payloads = {
-  PING: [Status<PingPayload>];
-  KILL: [undefined];
-  STAT: [Status<StatPayload>];
-  RUN: [Status<RunPayload>];
+  KILL: undefined;
+  PING: Status<PingPayload>;
+  STAT: Status<StatPayload>;
+  LIST: Status<ListPayload>;
+  STOP: Status<StopPayload>;
+  START: Status<StartPayload>;
 };
 
 export function assert(expr: unknown, msg = ""): asserts expr {
