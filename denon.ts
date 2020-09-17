@@ -1,9 +1,41 @@
+import { table } from "../gutenberg/table/table.ts";
+
 import { parse, tabtab, ParsedEnv } from "./deps.ts";
 
 import { kill } from "./ops/kill.ts";
 import { ping } from "./ops/ping.ts";
+import { list } from "./ops/list.ts";
+import { stop } from "./ops/stop.ts";
+import { remove } from "./ops/remove.ts";
+import { start } from "./ops/start.ts";
 
 import { spawn } from "./spawn.ts";
+
+import type { DecoratedProcess } from "./god/calls/list.ts";
+
+interface PrettyProcess {
+  name: string;
+  pid: number;
+  "↺": number;
+  status: string;
+  cpu: number;
+  mem: number;
+}
+
+function prettyProcesses(processes: DecoratedProcess[]): Record<string, PrettyProcess> {
+  const data: Record<string, PrettyProcess> = {};
+  for (const process of processes) {
+    data[process.xid] = {
+      name: process.name,
+      pid: process.pid,
+      "↺": 0,
+      status: process.status,
+      cpu: process.stats?.cpu ?? 0,
+      mem: process.stats?.mem ?? 0,
+    };
+  }
+  return data;
+}
 
 async function isOnline(): Promise<boolean> {
   return await fetch("http://localhost:8080")
@@ -21,6 +53,22 @@ function complete(env: ParsedEnv) {
       {
         name: "ping",
         description: "Ping the denon god process",
+      },
+      {
+        name: "start",
+        description: "Start a new process",
+      },
+      {
+        name: "ls",
+        description: "Show all spawned processes",
+      },
+      {
+        name: "stop",
+        description: "Stop a spawned processes",
+      },
+      {
+        name: "remove",
+        description: "Remove a spawned processes",
       },
       "completions",
       "remove-completions",
@@ -61,6 +109,7 @@ async function run() {
   }
 
   const sock = new WebSocket("ws://localhost:8080");
+  sock.onclose = () => Deno.exit(0);
   await new Promise((resolve) => sock.onopen = resolve);
 
   if (cmd === "kill") {
@@ -70,8 +119,47 @@ async function run() {
   if (cmd === "ping") {
     console.log(await ping(sock));
   }
-
-  sock.onclose = () => Deno.exit(0);
+  if (cmd === "ls") {
+    const payload = await list(sock);
+    if (payload.ok) {
+      const pretty = prettyProcesses(payload.data.processes);
+      console.log(table(pretty, {
+        key: "xid"
+      }))
+    }
+  }
+  if (cmd === "start") {
+    let startCall;
+    if (args.length === 1) {
+      startCall = { xid: parseInt(args[0]) } 
+    } else {
+      startCall = {
+        cmd: args,
+        cwd: Deno.cwd(),
+      }
+    }
+    const payload = await start(sock, startCall);
+    if (payload.ok) {
+      const pretty = prettyProcesses([payload.data]);
+      console.log(table(pretty, {
+        key: "xid"
+      }))
+    }
+  }
+  if (cmd === "stop") {
+    const xid = parseInt(args[0]);
+    const payload = await stop(sock, xid);
+    if (payload.ok) {
+      const pretty = prettyProcesses([payload.data]);
+      console.log(table(pretty, {
+        key: "xid"
+      }))
+    }
+  }
+  if (cmd === "remove") {
+    const xid = parseInt(args[0]);
+    await remove(sock, xid);
+  }
   sock.close(1000);
 }
 

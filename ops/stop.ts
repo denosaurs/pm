@@ -3,11 +3,11 @@ import type { StopPayload } from "../god/calls/stop.ts";
 
 import { call } from "./_ws.ts";
 
-export async function remove(
+export async function stop(
   sock: WebSocket,
   xid: number,
 ): Promise<Status<StopPayload>> {
-  return await call("REMOVE", { xid }, sock);
+  return await call("STOP", { xid }, sock);
 }
 
 if (import.meta.main) {

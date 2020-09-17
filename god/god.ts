@@ -120,14 +120,8 @@ if (import.meta.main) {
   god.on("START", wrap(start));
   god.on("REMOVE", wrap(remove));
   await god.run();
+  console.log("EEE");
   Deno.stderr.close();
   Deno.stdout.close();
-  window.onunload = () => {
-    for (const process of god.processes.values()) {
-      if (isProcess(process)) {
-        Deno.close(process.out);
-        Deno.close(process.err);
-      }
-    }
-  };
+  // TODO: god hangs when killed with running other processes, investigate
 }

@@ -1,4 +1,6 @@
 import type { Socket } from "../deps.ts";
+import { getDenoName } from "../exec/name.ts";
+import { Status } from "../exec/process.ts";
 
 import type { God } from "../god.ts";
 
@@ -10,6 +12,13 @@ export async function kill(
   sock: Socket,
   god: God,
 ): Promise<void> {
+  for (const process of god.processes.values()) {
+    if (process.status === Status.Online) {
+      process.raw.close();
+      Deno.close(process.out);
+      Deno.close(process.err);
+    } 
+  }
   await sock.close(1000);
   god.server.close();
 }
