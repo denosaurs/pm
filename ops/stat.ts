@@ -1,5 +1,9 @@
 import { call } from "./_ws.ts";
 
+export async function stat(sock: WebSocket, xid?: number) {
+  return await call("STAT", { xid }, sock);
+}
+
 if (import.meta.main) {
   let xid: number | undefined;
   if (Deno.args[0]) {
@@ -8,5 +12,5 @@ if (import.meta.main) {
   const payload = await call("STAT", {
     xid,
   });
-  console.table(payload);
+  console.log(payload.data);
 }

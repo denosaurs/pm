@@ -10,8 +10,7 @@ export interface PingPayload {
 }
 
 export async function ping(_: PingCall, sock: Socket): Promise<void> {
-  const payload: Ok<PingPayload> = ok({
+  await sock.send(JSON.stringify(ok("PING", {
     pid: Deno.pid,
-  });
-  await sock.send(JSON.stringify(payload));
+  })));
 }

@@ -18,6 +18,7 @@ import { stat } from "./calls/stat.ts";
 import { list } from "./calls/list.ts";
 import { stop } from "./calls/stop.ts";
 import { start } from "./calls/start.ts";
+import { remove } from "./calls/remove.ts";
 
 export interface Event {
   type: keyof Calls;
@@ -59,7 +60,8 @@ export class God extends EventEmitter<Calls> {
             case "STAT":
             case "LIST":
             case "STOP":
-            case "START": {
+            case "START":
+            case "REMOVE": {
               this.emit(request.type, request.call, sock, this);
               break;
             }
@@ -89,8 +91,7 @@ export class God extends EventEmitter<Calls> {
         headers,
       })
         .then((sock) => this.handle(sock))
-        .catch(async (err) => {
-          console.error(`failed to accept websocket: ${err}`);
+        .catch(async () => {
           await req.respond({ status: 400 });
         });
     }
@@ -117,6 +118,7 @@ if (import.meta.main) {
   god.on("LIST", wrap(list));
   god.on("STOP", wrap(stop));
   god.on("START", wrap(start));
+  god.on("REMOVE", wrap(remove));
   await god.run();
   Deno.stderr.close();
   Deno.stdout.close();

@@ -48,10 +48,10 @@ async function getPosix(pid: number): Promise<StatPayload> {
   const statsline = raw.split("\n")[1].trim();
 
   const stats = statsline.split(" ");
-  assert(stats.length === 7, "couldn't fetch stats");
+  assert("STAT", stats.length === 7, "couldn't fetch stats");
 
   const _pid = stats[0];
-  assert(pid.toString() === _pid, "pid does not match");
+  assert("STAT", pid.toString() === _pid, "pid does not match");
 
   const ppid = parseInt(stats[1]);
   const uid = parseInt(stats[2]);
@@ -79,11 +79,11 @@ export async function stat(
   let pid = Deno.pid;
   if (xid) {
     const process = god.processes.get(xid);
-    assert(process);
+    assert("STAT", process, "process not found");
     pid = process.pid;
   }
   const stats = await getStats(pid);
-  await sock.send(JSON.stringify(ok(stats)));
+  await sock.send(JSON.stringify(ok("STAT", stats)));
 }
 
 export async function getStats(pid: number): Promise<StatPayload> {

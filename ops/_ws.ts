@@ -1,28 +1,30 @@
-import type { Calls, Payloads } from "../god/call.ts";
+import type { Calls, Payloads, Status } from "../god/call.ts";
 
 export function call<T extends keyof Calls>(
   type: T,
   call: Calls[T][0],
-): Promise<Payloads[T]> {
+  sock?: WebSocket,
+): Promise<Status<Payloads[T]>> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket("ws://localhost:8080");
+    const ws = sock ?? new WebSocket("ws://localhost:8080");
 
-    ws.onopen = () => {
-      console.log("starting op");
-      ws.send(JSON.stringify({
-        type,
-        call,
-      }));
-    };
+    const data = JSON.stringify({
+      type,
+      call,
+    });
+
+    if (!sock) {
+      ws.onopen = () => {
+        ws.send(data);
+      };
+    } else {
+      ws.send(data);
+    }
 
     ws.onmessage = (event) => {
-      const payload = JSON.parse(event.data) as Payloads[T];
+      const payload = JSON.parse(event.data) as Status<Payloads[T]>;
       resolve(payload);
-      ws.close(1000, "BYE");
-    };
-
-    ws.onclose = () => {
-      console.log("op is closing");
+      if (!sock) ws.close(1000);
     };
 
     ws.onerror = reject;

@@ -11,6 +11,7 @@ export interface Process {
   env?: {
     [key: string]: string;
   };
+  name: string;
   status: Status;
 }
 

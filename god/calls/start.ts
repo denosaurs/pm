@@ -8,6 +8,8 @@ import type { God } from "../god.ts";
 import type { Process } from "../exec/process.ts";
 import { Status } from "../exec/process.ts";
 
+import { nameify } from "../exec/name.ts";
+
 export type StartCall = StartNewCall | StartOldCall;
 
 export interface StartNewCall {
@@ -43,15 +45,18 @@ export async function startOld(
   god: God,
 ): Promise<void> {
   const old = god.processes.get(xid);
-  assert(old);
-  assert(old.status !== Status.Online);
+  assert("START", old, "process not found");
+  assert(
+    "START",
+    old.status !== Status.Online,
+    "process must not be running",
+  );
 
   const process = await startProcess(old);
 
   god.processes.set(xid, process);
 
-  const payload: Ok<StartPayload> = ok(process);
-  sock.send(JSON.stringify(payload));
+  sock.send(JSON.stringify(ok("START", process)));
 }
 
 export async function startNew(
@@ -64,8 +69,7 @@ export async function startNew(
 
   god.processes.set(xid, process);
 
-  const payload: Ok<StartPayload> = ok(process);
-  await sock.send(JSON.stringify(payload));
+  sock.send(JSON.stringify(ok("START", process)));
 }
 
 export async function startProcess(
@@ -95,6 +99,7 @@ export async function startProcess(
     env,
     out: out.rid,
     err: err.rid,
+    name: nameify(cmd),
     status: Status.Online,
   };
   raw.status()
@@ -106,7 +111,7 @@ export async function startProcess(
       // process.close to stop a process an error in the status
       // is thrown. Update this when signals will be better
       // supported in deno
-      process.status = Status.Errored;
+      process.status = Status.Offline;
     });
   return process;
 }

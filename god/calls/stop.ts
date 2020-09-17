@@ -20,10 +20,9 @@ export async function stop(
   god: God,
 ): Promise<void> {
   const process = god.processes.get(xid);
-  assert(process);
-  assert(process.status === Status.Online);
+  assert("STOP", process, "process not found");
+  assert("STOP", process.status === Status.Online, "process must be running");
   process.raw.close();
   process.status = Status.Offline;
-  const payload: Ok<StopPayload> = ok(process);
-  sock.send(JSON.stringify(payload));
+  sock.send(JSON.stringify(ok("STOP", process)));
 }

@@ -41,8 +41,7 @@ export async function list(
     })());
   }
   const processes = await Promise.all(promises);
-  const payload: Ok<ListPayload> = ok({
+  sock.send(JSON.stringify(ok("LIST", {
     processes,
-  });
-  sock.send(JSON.stringify(payload));
+  })));
 }

@@ -1,8 +1,14 @@
-import type { DecoratedProcess } from "../god/calls/list.ts";
+import type { Status } from "../god/call.ts";
+import type { ListPayload } from "../god/calls/list.ts";
 
 import { call } from "./_ws.ts";
 
+export async function list(sock: WebSocket): Promise<Status<ListPayload>> {
+  return await call("LIST", {}, sock);
+}
+
 interface PrettyProcess {
+  name: string;
   pid: number;
   "↺": number;
   status: string;
@@ -13,9 +19,10 @@ interface PrettyProcess {
 if (import.meta.main) {
   const payload = await call("LIST", {});
   if (payload.ok) {
-    const table: Record<string, PrettyProcess> = {};
+    const data: Record<string, PrettyProcess> = {};
     for (const process of payload.data.processes) {
-      table[process.xid] = {
+      data[process.xid] = {
+        name: process.name,
         pid: process.pid,
         "↺": 0,
         status: process.status,
@@ -23,6 +30,6 @@ if (import.meta.main) {
         mem: process.stats?.mem ?? 0,
       };
     }
-    console.table(table);
+    console.log(data);
   }
 }
