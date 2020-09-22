@@ -89,7 +89,9 @@ export async function startProcess(
     env,
     stderr: err.rid,
     stdout: out.rid,
+    stdin: "null",
   });
+  const controller = new AbortController();
   const process: Process = {
     raw,
     xid,
@@ -101,17 +103,24 @@ export async function startProcess(
     err: err.rid,
     name: nameify(cmd),
     status: Status.Online,
+    controller,
   };
-  raw.status()
+
+  process.controller.signal.addEventListener("abort", () => {
+    process.status = Status.Offline;
+    process.raw.close();
+    Deno.close(process.out);
+    Deno.close(process.err);
+  });
+
+  process.raw.status()
     .then((status) => {
       process.status = status.success ? Status.Offline : Status.Errored;
+      process.raw.close();
+      Deno.close(process.out);
+      Deno.close(process.err);
     })
-    .catch(() => {
-      // TODO(@qu4k): this should not happen, but since we call
-      // process.close to stop a process an error in the status
-      // is thrown. Update this when signals will be better
-      // supported in deno
-      process.status = Status.Offline;
-    });
+    .catch((err) => console.error(err));
+
   return process;
 }

@@ -91,15 +91,18 @@ export class God extends EventEmitter<Calls> {
     router.get("/", (ctx) => {
       ctx.response.body = "Up and Running";
     });
+
     this.app.use(router.routes());
     this.app.use(router.allowedMethods());
+
     const { signal } = this.controller;
+    this.app.listen({ port: this.port, signal });
     signal.addEventListener("abort", () => {
-      console.log("BYE");
-      Deno.stderr.close()
-      Deno.stdout.close()
-    })
-    await this.app.listen({ port: this.port, signal });
+      console.table(Deno.resources());
+      Deno.stderr.close();
+      Deno.stdout.close();
+      Deno.exit(0);
+    });
   }
 }
 
@@ -110,6 +113,7 @@ function wrap<T>(fn: Listener<T>): Listener<T> {
     try {
       await fn(a, sock, god);
     } catch (_) {
+      console.error(_);
       sock.send(JSON.stringify(_));
     }
   };

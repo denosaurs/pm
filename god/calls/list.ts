@@ -40,6 +40,7 @@ export async function list(
       }
     })());
   }
+  console.table(Deno.resources());
   const processes = await Promise.all(promises);
   sock.send(JSON.stringify(ok("LIST", {
     processes,

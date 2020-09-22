@@ -14,9 +14,9 @@ export async function spawn() {
 
   const process = Deno.run({
     cmd: [script],
-    stdin: "null",
     stderr: err.rid,
     stdout: out.rid,
+    stdin: "null",
     cwd: Deno.cwd(),
     env: {
       "NO_COLOR": "_",
@@ -24,4 +24,5 @@ export async function spawn() {
   });
 
   await process.status();
+  process.close();
 }

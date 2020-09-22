@@ -43,6 +43,7 @@ async function getPosix(pid: number): Promise<StatPayload> {
     stdout: "piped",
   });
   await process.status();
+  process.close();
   const output = await process.output();
   const raw = decode(output).replace(/  +/g, " ");
   const statsline = raw.split("\n")[1].trim();

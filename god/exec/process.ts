@@ -13,6 +13,7 @@ export interface Process {
   };
   name: string;
   status: Status;
+  controller: AbortController;
 }
 
 export enum Status {
