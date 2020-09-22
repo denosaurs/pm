@@ -6,7 +6,7 @@ export async function spawn() {
     { create: true, append: true },
   );
   const err = await Deno.open(
-    join("logs", "log.out"),
+    join("logs", "log.err"),
     { create: true, append: true },
   );
 

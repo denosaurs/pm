@@ -10,7 +10,6 @@ import {
 import type { Calls } from "./call.ts";
 
 import type { Process } from "./exec/process.ts";
-import { isProcess } from "./exec/process.ts";
 
 import { kill } from "./calls/kill.ts";
 import { ping } from "./calls/ping.ts";
@@ -37,6 +36,8 @@ export class God extends EventEmitter<Calls> {
   port: number;
   server: Server;
 
+  kill: boolean = false;
+
   constructor(options?: GodOptions) {
     super();
     const { port }: Required<GodOptions> = Object.assign({}, options, {
@@ -53,7 +54,6 @@ export class God extends EventEmitter<Calls> {
       for await (const event of sock) {
         if (typeof event === "string") {
           const request = JSON.parse(event) as Event;
-          console.log("REQ", request);
           switch (request.type) {
             case "KILL":
             case "PING":
@@ -69,15 +69,19 @@ export class God extends EventEmitter<Calls> {
               await sock.close(1001).catch(console.error);
           }
         } else if (isSocketCLoseEvent(event)) {
-          console.log("CLOSE", event);
+          if (this.kill) {
+            this.server.close();
+          }
         }
       }
     } catch (err) {
       if (!sock.isClosed) {
         await sock.close(1001).catch(console.error);
       }
-      console.log("RES", err);
+      console.log("ERR", err);
     }
+
+    console.log("ENDING HANDLE");
   }
 
   async run() {
@@ -91,10 +95,13 @@ export class God extends EventEmitter<Calls> {
         headers,
       })
         .then((sock) => this.handle(sock))
-        .catch(async () => {
+        .catch(async (error) => {
+          console.log(error);
           await req.respond({ status: 400 });
         });
+      console.log("END OF SERVER LOOP");
     }
+    console.log("SERVER IS CLOSED NOW");
   }
 }
 
@@ -120,7 +127,6 @@ if (import.meta.main) {
   god.on("START", wrap(start));
   god.on("REMOVE", wrap(remove));
   await god.run();
-  console.log("EEE");
   Deno.stderr.close();
   Deno.stdout.close();
   // TODO: god hangs when killed with running other processes, investigate

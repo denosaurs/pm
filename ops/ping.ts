@@ -9,5 +9,5 @@ export async function ping(sock: WebSocket): Promise<Status<PingPayload>> {
 
 if (import.meta.main) {
   const payload = await call("PING", {});
-  console.table(payload);
+  console.log(payload);
 }

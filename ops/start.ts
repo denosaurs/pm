@@ -24,5 +24,5 @@ if (import.meta.main) {
     };
   }
   const payload = await call("START", start);
-  console.table(payload.data);
+  console.log(payload.data);
 }

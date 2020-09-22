@@ -22,7 +22,9 @@ interface PrettyProcess {
   mem: number;
 }
 
-function prettyProcesses(processes: DecoratedProcess[]): Record<string, PrettyProcess> {
+function prettyProcesses(
+  processes: DecoratedProcess[],
+): Record<string, PrettyProcess> {
   const data: Record<string, PrettyProcess> = {};
   for (const process of processes) {
     data[process.xid] = {
@@ -114,7 +116,8 @@ async function run() {
 
   if (cmd === "kill") {
     console.log("killing god process...");
-    await kill(sock);
+    const payload = await kill(sock);
+    if (!payload.ok) console.error(payload.data);
   }
   if (cmd === "ping") {
     console.log(await ping(sock));
@@ -124,26 +127,30 @@ async function run() {
     if (payload.ok) {
       const pretty = prettyProcesses(payload.data.processes);
       console.log(table(pretty, {
-        key: "xid"
-      }))
+        key: "xid",
+      }));
+    } else {
+      console.error(payload.data);
     }
   }
   if (cmd === "start") {
     let startCall;
     if (args.length === 1) {
-      startCall = { xid: parseInt(args[0]) } 
+      startCall = { xid: parseInt(args[0]) };
     } else {
       startCall = {
         cmd: args,
         cwd: Deno.cwd(),
-      }
+      };
     }
     const payload = await start(sock, startCall);
     if (payload.ok) {
       const pretty = prettyProcesses([payload.data]);
       console.log(table(pretty, {
-        key: "xid"
-      }))
+        key: "xid",
+      }));
+    } else {
+      console.error(payload.data);
     }
   }
   if (cmd === "stop") {
@@ -152,8 +159,10 @@ async function run() {
     if (payload.ok) {
       const pretty = prettyProcesses([payload.data]);
       console.log(table(pretty, {
-        key: "xid"
-      }))
+        key: "xid",
+      }));
+    } else {
+      console.error(payload.data);
     }
   }
   if (cmd === "remove") {

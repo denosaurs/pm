@@ -1,21 +1,21 @@
-export { join, basename } from "https://deno.land/std@0.69.0/path/mod.ts";
+export { join, basename } from "https://deno.land/std@0.70.0/path/mod.ts";
 
-export { serve } from "https://deno.land/std@0.69.0/http/server.ts";
+export { serve } from "https://deno.land/std@0.70.0/http/server.ts";
 
-export type { Server } from "https://deno.land/std@0.69.0/http/server.ts";
+export type { Server } from "https://deno.land/std@0.70.0/http/server.ts";
 
 export {
   acceptWebSocket as acceptSocket,
   isWebSocketCloseEvent as isSocketCLoseEvent,
-} from "https://deno.land/std@0.69.0/ws/mod.ts";
+} from "https://deno.land/std@0.70.0/ws/mod.ts";
 
 export type {
   WebSocket as Socket,
-} from "https://deno.land/std@0.69.0/ws/mod.ts";
+} from "https://deno.land/std@0.70.0/ws/mod.ts";
 
 export {
   decode,
-} from "https://deno.land/std@0.69.0/encoding/utf8.ts";
+} from "https://deno.land/std@0.70.0/encoding/utf8.ts";
 
 export {
   default as EventEmitter,
@@ -23,4 +23,4 @@ export {
 
 export {
   hasOwnProperty,
-} from "https://deno.land/std@0.69.0/_util/has_own_property.ts";
+} from "https://deno.land/std@0.70.0/_util/has_own_property.ts";

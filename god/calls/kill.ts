@@ -1,3 +1,4 @@
+import { assert } from "../call.ts";
 import type { Socket } from "../deps.ts";
 import { getDenoName } from "../exec/name.ts";
 import { Status } from "../exec/process.ts";
@@ -13,12 +14,16 @@ export async function kill(
   god: God,
 ): Promise<void> {
   for (const process of god.processes.values()) {
-    if (process.status === Status.Online) {
-      process.raw.close();
-      Deno.close(process.out);
-      Deno.close(process.err);
-    } 
+    assert(
+      "KILL",
+      process.status !== Status.Online,
+      "all spawned processes must be offline or errored",
+    );
+    Deno.close(process.out);
+    Deno.close(process.err);
+    process.raw.close();
   }
-  await sock.close(1000);
-  god.server.close();
+  await sock.send(JSON.stringify({}));
+  god.kill = true;
+  debugger;
 }
