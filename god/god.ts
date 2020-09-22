@@ -1,8 +1,8 @@
 import {
-  serve,
-  acceptSocket,
+  Application,
+  Router,
+  isSocketAcceptable,
   isSocketCLoseEvent,
-  Server,
   Socket,
   EventEmitter,
 } from "./deps.ts";
@@ -33,8 +33,9 @@ export class God extends EventEmitter<Calls> {
   gxid: number;
   processes: Map<number, Process>;
 
+  app: Application;
   port: number;
-  server: Server;
+  controller: AbortController;
 
   kill: boolean = false;
 
@@ -45,63 +46,60 @@ export class God extends EventEmitter<Calls> {
     });
     this.gxid = 0;
     this.processes = new Map();
+    this.app = new Application();
     this.port = port;
-    this.server = serve(`:${port}`);
+    this.controller = new AbortController();
   }
 
   async handle(sock: Socket) {
-    try {
-      for await (const event of sock) {
-        if (typeof event === "string") {
-          const request = JSON.parse(event) as Event;
-          switch (request.type) {
-            case "KILL":
-            case "PING":
-            case "STAT":
-            case "LIST":
-            case "STOP":
-            case "START":
-            case "REMOVE": {
-              this.emit(request.type, request.call, sock, this);
-              break;
-            }
-            default:
-              await sock.close(1001).catch(console.error);
+    for await (const event of sock) {
+      if (typeof event === "string") {
+        const request = JSON.parse(event) as Event;
+        switch (request.type) {
+          case "KILL":
+          case "PING":
+          case "STAT":
+          case "LIST":
+          case "STOP":
+          case "START":
+          case "REMOVE": {
+            this.emit(request.type, request.call, sock, this);
+            break;
           }
-        } else if (isSocketCLoseEvent(event)) {
-          if (this.kill) {
-            this.server.close();
-          }
+          default:
+            await sock.close(1001).catch(console.error);
+        }
+      } else if (isSocketCLoseEvent(event)) {
+        if (this.kill) {
+          this.controller.abort();
         }
       }
-    } catch (err) {
-      if (!sock.isClosed) {
-        await sock.close(1001).catch(console.error);
-      }
-      console.log("ERR", err);
     }
-
-    console.log("ENDING HANDLE");
   }
 
   async run() {
-    console.log(`websocket server is running on :${this.port}`);
-    for await (const req of this.server) {
-      const { conn, r: bufReader, w: bufWriter, headers } = req;
-      acceptSocket({
-        conn,
-        bufReader,
-        bufWriter,
-        headers,
-      })
-        .then((sock) => this.handle(sock))
-        .catch(async (error) => {
-          console.log(error);
-          await req.respond({ status: 400 });
-        });
-      console.log("END OF SERVER LOOP");
-    }
-    console.log("SERVER IS CLOSED NOW");
+    const router = new Router();
+    router.get("/ws", async (ctx) => {
+      if (isSocketAcceptable(ctx.request)) {
+        const sock = await ctx.upgrade();
+        this.handle(sock);
+      } else {
+        ctx.response.body = "Endpoint reserved for websocket connections";
+        ctx.response.status = 400;
+      }
+    });
+    router.get("/", (ctx) => {
+      ctx.response.body = "Up and Running";
+    });
+    this.app.use(router.routes());
+    this.app.use(router.allowedMethods());
+    const { signal } = this.controller;
+    signal.addEventListener("abort", () => {
+      console.log("BYE");
+      Deno.stderr.close()
+      Deno.stdout.close()
+    })
+    await this.app.listen({ port: this.port, signal });
   }
 }
 
@@ -127,7 +125,4 @@ if (import.meta.main) {
   god.on("START", wrap(start));
   god.on("REMOVE", wrap(remove));
   await god.run();
-  Deno.stderr.close();
-  Deno.stdout.close();
-  // TODO: god hangs when killed with running other processes, investigate
 }

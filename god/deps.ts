@@ -1,12 +1,11 @@
 export { join, basename } from "https://deno.land/std@0.70.0/path/mod.ts";
 
-export { serve } from "https://deno.land/std@0.70.0/http/server.ts";
-
-export type { Server } from "https://deno.land/std@0.70.0/http/server.ts";
+export { Server } from "https://deno.land/std@0.70.0/http/server.ts";
 
 export {
   acceptWebSocket as acceptSocket,
   isWebSocketCloseEvent as isSocketCLoseEvent,
+  acceptable as isSocketAcceptable,
 } from "https://deno.land/std@0.70.0/ws/mod.ts";
 
 export type {
@@ -24,3 +23,5 @@ export {
 export {
   hasOwnProperty,
 } from "https://deno.land/std@0.70.0/_util/has_own_property.ts";
+
+export { Application, Router } from "https://deno.land/x/oak@v6.2.0/mod.ts";

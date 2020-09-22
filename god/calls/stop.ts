@@ -22,8 +22,8 @@ export async function stop(
   const process = god.processes.get(xid);
   assert("STOP", process, "process not found");
   assert("STOP", process.status === Status.Online, "process must be running");
-  process.raw.stderr?.close();
-  process.raw.stdout?.close();
+  Deno.close(process.out);
+  Deno.close(process.err);
   process.raw.close();
   process.status = Status.Offline;
   sock.send(JSON.stringify(ok("STOP", process)));

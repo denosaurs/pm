@@ -6,7 +6,7 @@ export function call<T extends keyof Calls>(
   sock?: WebSocket,
 ): Promise<Status<Payloads[T]>> {
   return new Promise((resolve, reject) => {
-    const ws = sock ?? new WebSocket("ws://localhost:8080");
+    const ws = sock ?? new WebSocket("ws://localhost:8080/ws");
 
     const data = JSON.stringify({
       type,

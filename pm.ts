@@ -110,7 +110,7 @@ async function run() {
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
-  const sock = new WebSocket("ws://localhost:8080");
+  const sock = new WebSocket("ws://localhost:8080/ws");
   sock.onclose = () => Deno.exit(0);
   await new Promise((resolve) => sock.onopen = resolve);
 
