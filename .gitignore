@@ -1,2 +1,6 @@
+# logs
 *.err
 *.out
+
+# IDE
+.vscode

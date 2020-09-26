@@ -1,6 +1,6 @@
 import { table } from "../gutenberg/table/table.ts";
 
-import { parse, tabtab, ParsedEnv } from "./deps.ts";
+import { tabtab, ParsedEnv } from "./deps.ts";
 
 import { kill } from "./ops/kill.ts";
 import { ping } from "./ops/ping.ts";
@@ -11,7 +11,7 @@ import { start } from "./ops/start.ts";
 
 import { spawn } from "./spawn.ts";
 
-import type { DecoratedProcess } from "./god/calls/list.ts";
+import type { RunningProcess } from "./god/calls/list.ts";
 
 interface PrettyProcess {
   name: string;
@@ -23,14 +23,14 @@ interface PrettyProcess {
 }
 
 function prettyProcesses(
-  processes: DecoratedProcess[],
+  processes: RunningProcess[],
 ): Record<string, PrettyProcess> {
   const data: Record<string, PrettyProcess> = {};
   for (const process of processes) {
     data[process.xid] = {
       name: process.name,
       pid: process.pid,
-      "↺": 0,
+      "↺": process.restarts,
       status: process.status,
       cpu: process.stats?.cpu ?? 0,
       mem: process.stats?.mem ?? 0,
@@ -46,7 +46,8 @@ async function isOnline(): Promise<boolean> {
 }
 
 function complete(env: ParsedEnv) {
-  if (env.words === 1) { // top level commands
+  if (env.words === 1) {
+    // top level commands
     return tabtab.log([
       {
         name: "kill",
@@ -112,7 +113,7 @@ async function run() {
 
   const sock = new WebSocket("ws://localhost:8080/ws");
   sock.onclose = () => Deno.exit(0);
-  await new Promise((resolve) => sock.onopen = resolve);
+  await new Promise((resolve) => (sock.onopen = resolve));
 
   if (cmd === "kill") {
     console.log("killing god process...");
@@ -126,9 +127,11 @@ async function run() {
     const payload = await list(sock);
     if (payload.ok) {
       const pretty = prettyProcesses(payload.data.processes);
-      console.log(table(pretty, {
-        key: "xid",
-      }));
+      console.log(
+        table(pretty, {
+          key: "xid",
+        }),
+      );
     } else {
       console.error(payload.data);
     }
@@ -146,9 +149,11 @@ async function run() {
     const payload = await start(sock, startCall);
     if (payload.ok) {
       const pretty = prettyProcesses([payload.data]);
-      console.log(table(pretty, {
-        key: "xid",
-      }));
+      console.log(
+        table(pretty, {
+          key: "xid",
+        }),
+      );
     } else {
       console.error(payload.data);
     }
@@ -158,9 +163,11 @@ async function run() {
     const payload = await stop(sock, xid);
     if (payload.ok) {
       const pretty = prettyProcesses([payload.data]);
-      console.log(table(pretty, {
-        key: "xid",
-      }));
+      console.log(
+        table(pretty, {
+          key: "xid",
+        }),
+      );
     } else {
       console.error(payload.data);
     }

@@ -24,10 +24,12 @@ export function posixTime(time: string): number {
   const times = time.replace("-", ":").split(":");
   const values = Array(4 - times.length).fill(0);
   times.forEach((n) => values.push(parseInt(n)));
-  return values[0] * 86400 + // days
+  return (
+    values[0] * 86400 + // days
     values[1] * 3600 + // hours
     values[2] * 60 + // minutes
-    values[3]; // seconds
+    values[3]
+  ); // seconds
 }
 
 async function getPosix(pid: number): Promise<StatPayload> {

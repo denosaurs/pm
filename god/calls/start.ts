@@ -1,6 +1,5 @@
 import { join, hasOwnProperty, Socket } from "../deps.ts";
 
-import type { Ok } from "../call.ts";
 import { ok, assert } from "../call.ts";
 
 import type { God } from "../god.ts";
@@ -10,23 +9,26 @@ import { Status } from "../exec/process.ts";
 
 import { nameify } from "../exec/name.ts";
 
-export type StartCall = StartNewCall | StartOldCall;
+export type StartCall = StartNewCall | StartExistingCall;
+export type StartArgs = StartNewCall & StartExistingCall;
+
+export type Env = {
+  [key: string]: string;
+};
 
 export interface StartNewCall {
   cmd: string[];
   cwd: string;
-  env?: {
-    [key: string]: string;
-  };
+  env?: Env;
 }
 
-export interface StartOldCall {
+export interface StartExistingCall {
   xid: number;
 }
 
 export type StartPayload = Process;
 
-export function isOldCall(a: StartCall): a is StartOldCall {
+export function isOldCall(a: StartCall): a is StartExistingCall {
   return hasOwnProperty(a, "xid");
 }
 
@@ -35,26 +37,20 @@ export async function start(
   sock: Socket,
   god: God,
 ): Promise<void> {
-  if (isOldCall(call)) return startOld(call, sock, god);
+  if (isOldCall(call)) return startExisting(call, sock, god);
   else return startNew(call, sock, god);
 }
 
-export async function startOld(
-  { xid }: StartOldCall,
+export async function startExisting(
+  { xid }: StartExistingCall,
   sock: Socket,
   god: God,
 ): Promise<void> {
   const old = god.processes.get(xid);
   assert("START", old, "process not found");
-  assert(
-    "START",
-    old.status !== Status.Online,
-    "process must not be running",
-  );
+  assert("START", old.status !== Status.Online, "process must not be running");
 
-  const process = await startProcess(old);
-
-  god.processes.set(xid, process);
+  const process = await startProcess(old, god);
 
   sock.send(JSON.stringify(ok("START", process)));
 }
@@ -65,62 +61,92 @@ export async function startNew(
   god: God,
 ): Promise<void> {
   const xid = ++god.gxid;
-  const process = await startProcess({ cmd, cwd, env, xid });
 
-  god.processes.set(xid, process);
+  const process = await startProcess({ cmd, cwd, env, xid }, god);
 
   sock.send(JSON.stringify(ok("START", process)));
 }
 
+export type LogFiles = { out: number; err: number };
+export async function createLogFiles(xid: number): Promise<LogFiles> {
+  const { rid: out } = await Deno.open(join("logs", `${xid}.out`), {
+    create: true,
+    append: true,
+  });
+  const { rid: err } = await Deno.open(join("logs", `${xid}.err`), {
+    create: true,
+    append: true,
+  });
+  return { out, err };
+}
+
 export async function startProcess(
-  { cmd, cwd, env, xid }: StartNewCall & StartOldCall,
+  { xid, cmd, cwd, env }: StartArgs,
+  god: God,
 ): Promise<Process> {
-  const out = await Deno.open(
-    join("logs", `${xid}.out`),
-    { create: true, append: true },
-  );
-  const err = await Deno.open(
-    join("logs", `${xid}.err`),
-    { create: true, append: true },
-  );
+  const { err, out } = await createLogFiles(xid);
+
   const raw = Deno.run({
     cmd,
     cwd,
     env,
-    stderr: err.rid,
-    stdout: out.rid,
+    stdout: out,
+    stderr: err,
     stdin: "null",
   });
+  const { pid } = raw;
+
   const controller = new AbortController();
-  const process: Process = {
-    raw,
-    xid,
-    pid: raw.pid,
-    cmd,
-    cwd,
-    env,
-    out: out.rid,
-    err: err.rid,
-    name: nameify(cmd),
-    status: Status.Online,
-    controller,
-  };
+
+  let process: Process;
+  let maybe = god.processes.get(xid);
+  if (maybe) {
+    process = maybe;
+    process.raw = raw;
+    process.pid = pid;
+    process.out = out;
+    process.err = err;
+    process.restarts++;
+    process.status = Status.Online;
+    process.controller = controller;
+  } else {
+    process = {
+      raw,
+      xid,
+      pid,
+      cmd,
+      cwd,
+      env,
+      out,
+      err,
+      name: nameify(cmd),
+      status: Status.Online,
+      restarts: 0,
+      controller,
+    };
+  }
 
   process.controller.signal.addEventListener("abort", () => {
     process.status = Status.Offline;
-    process.raw.close();
     Deno.close(process.out);
     Deno.close(process.err);
+    process.raw.close();
   });
 
-  process.raw.status()
+  process.raw
+    .status()
     .then((status) => {
-      process.status = status.success ? Status.Offline : Status.Errored;
-      process.raw.close();
-      Deno.close(process.out);
-      Deno.close(process.err);
+      if (process.status === Status.Online) {
+        process.status = status.success ? Status.Offline : Status.Errored;
+        Deno.close(process.out);
+        Deno.close(process.err);
+        process.raw.close();
+        startProcess(process, god);
+      }
     })
-    .catch((err) => console.error(err));
+    .catch(() => {});
+
+  god.processes.set(xid, process);
 
   return process;
 }
